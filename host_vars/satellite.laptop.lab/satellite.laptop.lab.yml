@@ -33,5 +33,3 @@ sat_firewalld_services:
 # set skip_prepare_realm below to true. This will avoid having
 # to redistribute the keytab file to your capsules.
 skip_prepare_realm: false
-
-
