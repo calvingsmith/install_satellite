@@ -2,9 +2,12 @@
 # Install the Insights *role* RPM on Satellite, then import into Foreman (hammer) so the host group can assign ansible_roles.
 
 - name: Install Insights client Ansible role RPM on Satellite
+  # foreman-protector blocks CDN repos until content is synced; use RHSM CDN for Satellite self-packages.
   ansible.builtin.dnf:
     name: "{{ rhel9_insights_ansible_rpm }}"
     state: present
+    disable_plugin:
+      - foreman-protector
 
 - name: Stat Insights Ansible role directory from RPM
   ansible.builtin.stat:

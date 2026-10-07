@@ -1,0 +1,7 @@
+---
+idm_satellite_ldap_bind_user: satellite-ldap
+idm_satellite_ldap_bind_first: Satellite
+idm_satellite_ldap_bind_last: LDAP
+# Principal is in ~/vault/satellite.yml; password in secrets.yml (install-idm convention).
+idm_ipaadmin_principal: "{{ ipa_admin_principal_vault | default(ipaadmin_principal | default('admin@' ~ ipaserver_realm)) }}"
+idm_ipaadmin_password: "{{ ipa_admin_password_vault | default(ipaadmin_password) }}"

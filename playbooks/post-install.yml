@@ -1,5 +1,25 @@
 # Libvirt compute profile (roles/libvirt_compute_profile) uses vm_network from laptop.lab.yml.
 # Optional profile-only refresh: second play at end of this file, tag libvirt_compute_profile_refresh.
+- name: Phase3 - IdM access objects for Satellite
+  hosts: idm_server
+  become: true
+  tags:
+    - post_install
+  vars_files:
+    - ~/vault/secrets.yml
+    - ~/vault/satellite.yml
+    - laptop.lab.yml
+
+  tasks:
+    - name: Ensure IdM users and groups for Satellite access
+      when: satellite_pre_use_idm | default(true)
+      ansible.builtin.import_role:
+        name: idm_satellite_access
+      tags:
+        - tags_idm_idm_access
+        - tags_basic_config
+        - tags_pre_sync
+
 - name: Phase3 - Post Installation Tasks
   hosts: satellite_group
   become: true
@@ -36,6 +56,26 @@
       tags:
         - tags_basic_config
         - tags_satellite_settings
+        - tags_pre_sync
+
+    - name: Register Foreman domain and IdM realm
+      when: satellite_pre_use_idm | default(true)
+      ansible.builtin.import_role:
+        name: satellite_idm_foreman
+      tags:
+        - tags_idm_foreman
+        - tags_basic_config
+        - tags_pre_sync
+
+    - name: Configure IdM LDAP authentication for Satellite
+      when:
+        - satellite_pre_use_idm | default(true)
+        - satellite_idm_auth_enabled | default(true)
+      ansible.builtin.import_role:
+        name: satellite_idm_auth
+      tags:
+        - tags_idm_auth
+        - tags_basic_config
         - tags_pre_sync
 
     - name: Discover Satellite NIC on provisioning network

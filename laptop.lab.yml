@@ -47,3 +47,41 @@ libvirt_compute_resource_display_type: "vnc"
 libvirt_compute_profile_name: "libvirt-default"
 
 # IdM reverse DNS zones: set in install-idm.yml (ipaserver_reverse_zones) so ipa-server-install creates them.
+
+# --- Satellite IdM integration ---
+# Realm/domain (satellite_idm_foreman): host enrollment via kickstart freeipa_register.
+# LDAP auth (satellite_idm_auth): IdM users log into Satellite; groups map to Foreman roles.
+satellite_idm_auth_enabled: true
+satellite_idm_ldap_name: "IdM laptop.lab"
+satellite_idm_ldap_port: 636
+satellite_idm_ldap_base_dn: "dc=laptop,dc=lab"
+satellite_idm_ldap_groups_base: "cn=groups,cn=accounts,dc=laptop,dc=lab"
+satellite_idm_ldap_bind_dn: "uid={{ idm_satellite_ldap_bind_user | default('satellite-ldap') }},cn=users,cn=accounts,dc=laptop,dc=lab"
+idm_satellite_ldap_bind_user: satellite-ldap
+
+idm_satellite_groups:
+  - satellite-admins
+  - satellite-operators
+
+idm_satellite_lab_users:
+  - name: alice
+    first: Alice
+    last: Admin
+    groups: [satellite-admins]
+  - name: brian
+    first: Brian
+    last: Operator
+    groups: [satellite-operators]
+  - name: charlie
+    first: Charlie
+    last: Operator
+    groups: [satellite-operators]
+
+satellite_idm_group_mappings:
+  # Role names must match `hammer role list` (Satellite 6.18 has no "Administrator").
+  - idm_group: satellite-admins
+    usergroup: "Satellite IdM Admins"
+    roles: [System admin]
+  - idm_group: satellite-operators
+    usergroup: "Satellite IdM Operators"
+    roles: [Viewer]

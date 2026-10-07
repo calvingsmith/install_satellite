@@ -1,0 +1,27 @@
+---
+- name: Ensure IdM LDAP authentication source exists in Satellite
+  redhat.satellite.auth_source_ldap:
+    username: "{{ satellite_username }}"
+    password: "{{ satellite_password }}"
+    server_url: "{{ satellite_url }}"
+    validate_certs: "{{ satellite_validate_certs }}"
+    state: present
+    name: "{{ satellite_idm_ldap_name }}"
+    host: "{{ idm_hostname }}"
+    port: "{{ satellite_idm_ldap_port }}"
+    tls: true
+    server_type: free_ipa
+    onthefly_register: true
+    usergroup_sync: true
+    account: "{{ satellite_idm_ldap_bind_dn }}"
+    account_password: "{{ satellite_ldap_bind_password | default(idm_lab_user_password) }}"
+    base_dn: "{{ satellite_idm_ldap_base_dn }}"
+    groups_base: "{{ satellite_idm_ldap_groups_base }}"
+    attr_login: uid
+    attr_firstname: givenName
+    attr_lastname: sn
+    attr_mail: mail
+    organizations:
+      - "{{ satellite_organization }}"
+    locations:
+      - "{{ satellite_location }}"

@@ -1,35 +1,29 @@
 ---
-# Install the rhel-system-roles collection RPM on Satellite, then import the firewall role into Foreman
-# so the rhel9-server host group can assign it via ansible_roles.
-#
-# The rhel-system-roles package ships a full Ansible collection at:
-#   /usr/share/ansible/collections/ansible_collections/redhat/rhel_system_roles/
-# Satellite's Smart Proxy discovers roles from this path and exposes them via hammer.
+# Install rhel-system-roles RPM on Satellite, then import firewall role via hammer.
 
 - name: Install rhel-system-roles RPM on Satellite
+  # foreman-protector blocks CDN repos until content is synced; use RHSM CDN for Satellite self-packages.
   ansible.builtin.dnf:
     name: "{{ rhel9_firewall_role_rpm }}"
     state: present
+    disable_plugin:
+      - foreman-protector
 
-- name: Stat firewall role directory from rhel-system-roles collection
+- name: Stat firewall Ansible role directory from RPM
   ansible.builtin.stat:
     path: "{{ rhel9_firewall_role_path }}"
-  register: rhel9_firewall_role_stat
+  register: rhel9_firewall_role_path_stat
 
-- name: Assert firewall role directory exists after RPM install
+- name: Assert firewall role path exists after RPM install
   ansible.builtin.assert:
     that:
-      - rhel9_firewall_role_stat.stat.exists
-      - rhel9_firewall_role_stat.stat.isdir
+      - rhel9_firewall_role_path_stat.stat.exists
+      - rhel9_firewall_role_path_stat.stat.isdir
     fail_msg: >-
-      Expected role directory {{ rhel9_firewall_role_path }} missing after installing
-      {{ rhel9_firewall_role_rpm }}. Override rhel9_firewall_role_path
-      (rpm -ql {{ rhel9_firewall_role_rpm }} | grep firewall | head -3).
+      Expected role directory {{ rhel9_firewall_role_path }} missing after installing {{ rhel9_firewall_role_rpm }}.
+      Override rhel9_firewall_role_path (see rpm -ql {{ rhel9_firewall_role_rpm }}).
 
-# Reuse satellite_ansible_smart_proxy_id if already set by install_ansible_roles_on_satellite.yml
-# (both tasks run in the same play so the set_fact persists).
-- name: Get Smart Proxy ID for Ansible role import
-  when: satellite_ansible_smart_proxy_id is not defined
+- name: Get Smart Proxy ID for firewall Ansible role import
   ansible.builtin.command:
     argv:
       - hammer
@@ -42,22 +36,21 @@
   register: rhel9_firewall_proxy_info
   changed_when: false
 
-- name: Set Smart Proxy ID for firewall role import
-  when: satellite_ansible_smart_proxy_id is not defined
+- name: Set Smart Proxy ID for firewall role hammer import
   vars:
     _proxy: "{{ rhel9_firewall_proxy_info.stdout | from_json }}"
   ansible.builtin.set_fact:
-    satellite_ansible_smart_proxy_id: "{{ _proxy.id | default(_proxy.Id) }}"
+    satellite_firewall_ansible_smart_proxy_id: "{{ _proxy.id | default(_proxy.Id) }}"
 
-- name: Assert Smart Proxy ID was resolved
+- name: Assert Smart Proxy ID was resolved for firewall role import
   ansible.builtin.assert:
     that:
-      - satellite_ansible_smart_proxy_id is defined
-      - satellite_ansible_smart_proxy_id | string | length > 0
+      - satellite_firewall_ansible_smart_proxy_id is defined
+      - satellite_firewall_ansible_smart_proxy_id | string | length > 0
     fail_msg: >-
       Could not read id from `hammer --output json proxy info --name {{ satellite_smart_proxy_name }}`.
 
-- name: Import redhat.rhel_system_roles.firewall into Satellite from Smart Proxy
+- name: Import firewall Ansible role into Satellite from Smart Proxy
   ansible.builtin.command:
     argv:
       - hammer
@@ -65,7 +58,7 @@
       - roles
       - import
       - "--proxy-id"
-      - "{{ satellite_ansible_smart_proxy_id | string }}"
+      - "{{ satellite_firewall_ansible_smart_proxy_id | string }}"
       - "--role-names"
       - "{{ rhel9_firewall_role_name }}"
   register: rhel9_firewall_hammer_import

@@ -1,0 +1,9 @@
+---
+- name: Configure SELinux for LDAP
+  ansible.builtin.import_tasks: selinux.yml
+
+- name: Configure IdM LDAP auth source
+  ansible.builtin.import_tasks: auth_source.yml
+
+- name: Map IdM groups to Satellite roles
+  ansible.builtin.import_tasks: usergroups.yml

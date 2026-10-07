@@ -1,0 +1,32 @@
+---
+# Register Foreman domain and IdM realm so host groups and kickstart freeipa_register work.
+
+- name: Ensure Foreman domain exists for IdM DNS zone
+  redhat.satellite.domain:
+    username: "{{ satellite_username }}"
+    password: "{{ satellite_password }}"
+    server_url: "{{ satellite_url }}"
+    validate_certs: "{{ satellite_validate_certs }}"
+    state: present
+    name: "{{ ipaserver_domain }}"
+    description: "IdM domain {{ ipaserver_domain }}"
+    dns_proxy: "{{ satellite_smart_proxy_name }}"
+    organizations:
+      - "{{ satellite_organization }}"
+    locations:
+      - "{{ satellite_location }}"
+
+- name: Ensure Foreman IdM realm exists for host enrollment
+  redhat.satellite.realm:
+    username: "{{ satellite_username }}"
+    password: "{{ satellite_password }}"
+    server_url: "{{ satellite_url }}"
+    validate_certs: "{{ satellite_validate_certs }}"
+    state: present
+    name: "{{ ipaserver_realm }}"
+    realm_type: "Red Hat Identity Management"
+    realm_proxy: "{{ satellite_smart_proxy_name }}"
+    organizations:
+      - "{{ satellite_organization }}"
+    locations:
+      - "{{ satellite_location }}"

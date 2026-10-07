@@ -1,0 +1,4 @@
+---
+satellite_idm_auth_enabled: true
+satellite_idm_ldap_name: "IdM laptop.lab"
+satellite_idm_ldap_port: 636

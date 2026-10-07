@@ -1,0 +1,49 @@
+---
+# IdM users/groups used by Satellite LDAP external auth (roles/satellite_idm_auth).
+
+- name: Ensure Satellite LDAP bind user exists in IdM
+  redhat.rhel_idm.ipauser:
+    ipaadmin_principal: "{{ idm_ipaadmin_principal }}"
+    ipaadmin_password: "{{ idm_ipaadmin_password }}"
+    name: "{{ idm_satellite_ldap_bind_user }}"
+    first: "{{ idm_satellite_ldap_bind_first }}"
+    last: "{{ idm_satellite_ldap_bind_last }}"
+    password: "{{ satellite_ldap_bind_password | default(idm_lab_user_password) }}"
+    update_password: on_create
+    state: present
+
+- name: Ensure Satellite access groups exist in IdM
+  redhat.rhel_idm.ipagroup:
+    ipaadmin_principal: "{{ idm_ipaadmin_principal }}"
+    ipaadmin_password: "{{ idm_ipaadmin_password }}"
+    name: "{{ item }}"
+    state: present
+  loop: "{{ idm_satellite_groups }}"
+  loop_control:
+    label: "{{ item }}"
+
+- name: Ensure lab users exist in IdM
+  redhat.rhel_idm.ipauser:
+    ipaadmin_principal: "{{ idm_ipaadmin_principal }}"
+    ipaadmin_password: "{{ idm_ipaadmin_password }}"
+    name: "{{ item.name }}"
+    first: "{{ item.first }}"
+    last: "{{ item.last }}"
+    password: "{{ idm_lab_user_password }}"
+    update_password: on_create
+    state: present
+  loop: "{{ idm_satellite_lab_users }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Assign lab users to Satellite access groups
+  redhat.rhel_idm.ipagroup:
+    ipaadmin_principal: "{{ idm_ipaadmin_principal }}"
+    ipaadmin_password: "{{ idm_ipaadmin_password }}"
+    name: "{{ item.1 }}"
+    action: member
+    user: "{{ item.0.name }}"
+    state: present
+  loop: "{{ idm_satellite_lab_users | subelements('groups') }}"
+  loop_control:
+    label: "{{ item.0.name }} -> {{ item.1 }}"

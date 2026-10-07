@@ -1,0 +1,6 @@
+---
+- name: Allow Satellite outgoing LDAP connections (SELinux)
+  ansible.posix.seboolean:
+    name: nis_enabled
+    state: true
+    persistent: true

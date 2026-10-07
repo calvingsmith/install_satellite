@@ -1,0 +1,4 @@
+---
+# Vault (~/vault/secrets.yml): idm_lab_user_password (required).
+# Optional satellite_ldap_bind_password overrides bind account password; defaults to idm_lab_user_password.
+satellite_idm_auth_enabled: true

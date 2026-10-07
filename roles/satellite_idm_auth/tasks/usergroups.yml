@@ -1,0 +1,27 @@
+---
+- name: Ensure Satellite user groups exist for IdM role mapping
+  redhat.satellite.usergroup:
+    username: "{{ satellite_username }}"
+    password: "{{ satellite_password }}"
+    server_url: "{{ satellite_url }}"
+    validate_certs: "{{ satellite_validate_certs }}"
+    state: present
+    name: "{{ item.usergroup }}"
+    roles: "{{ item.roles }}"
+  loop: "{{ satellite_idm_group_mappings }}"
+  loop_control:
+    label: "{{ item.usergroup }}"
+
+- name: Link IdM groups to Satellite user groups
+  redhat.satellite.external_usergroup:
+    username: "{{ satellite_username }}"
+    password: "{{ satellite_password }}"
+    server_url: "{{ satellite_url }}"
+    validate_certs: "{{ satellite_validate_certs }}"
+    state: present
+    name: "{{ item.idm_group }}"
+    auth_source: "{{ satellite_idm_ldap_name }}"
+    usergroup: "{{ item.usergroup }}"
+  loop: "{{ satellite_idm_group_mappings }}"
+  loop_control:
+    label: "{{ item.idm_group }} -> {{ item.usergroup }}"
