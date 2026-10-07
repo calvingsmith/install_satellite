@@ -14,7 +14,7 @@
 # listing them in vars_files. Use an inventory that contains the Satellite FQDN (see inventory in this repo).
 #
 # Run from the repository root:
-#   ansible-playbook -i inventory httpboot-demo.yml
+#   ansible-playbook -i inventory playbooks/httpboot-demo.yml
 #
 # Override any value with -e, or change the play host (e.g. duplicate host_vars for another FQDN).
 #
@@ -46,14 +46,14 @@
   vars_files:
     - "~/vault/satellite.yml"
     - "~/vault/secrets.yml"
-    - "{{ playbook_dir }}/laptop.lab.yml"
+    - "{{ repo_root }}/laptop.lab.yml"
   vars:
     # Upload only the PXEGrub2 template and link it to the RHEL 9 OS.
     # The full SOE template set is uploaded by lightspeed-demo-client.yml at provision time.
     satellite_soe_templates_list:
       - name: SOE Kickstart Default PXEGrub2
         kind: PXEGrub2
-        file_name: "{{ playbook_dir }}/templates/prov_template_soe_kickstart_default_pxegrub2.j2"
+        file_name: "{{ repo_root }}/templates/prov_template_soe_kickstart_default_pxegrub2.j2"
     satellite_soe_templates_link_os: true
 
   module_defaults:
@@ -93,7 +93,7 @@
   vars_files:
     - "~/vault/satellite.yml"
     - "~/vault/secrets.yml"
-    - "{{ playbook_dir }}/laptop.lab.yml"
+    - "{{ repo_root }}/laptop.lab.yml"
   vars:
     lightspeed_demo_vm_fqdn: test-boot.laptop.lab
 

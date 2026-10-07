@@ -5,7 +5,7 @@
 #   - Remove the SOE provisioning template from Satellite (optional; see httpboot_revert_delete_template).
 #
 # Uses the same vault files, host, and OS search variables as httpboot-demo.yml:
-#   ansible-playbook -i inventory httpboot-revert.yml
+#   ansible-playbook -i inventory playbooks/httpboot-revert.yml
 #   -e satellite_soe_templates_rhel9_minor=6
 #   -e 'satellite_soe_templates_os_search=name = "RedHat" and major = 9 and minor = "6"'
 #
@@ -22,7 +22,7 @@
   vars_files:
     - "~/vault/satellite.yml"
     - "~/vault/secrets.yml"
-    - "{{ playbook_dir }}/laptop.lab.yml"
+    - "{{ repo_root }}/laptop.lab.yml"
   vars:
     httpboot_revert_pxegrub2_name: SOE Kickstart Default PXEGrub2
     httpboot_revert_default_pxegrub2: Kickstart default PXEGrub2

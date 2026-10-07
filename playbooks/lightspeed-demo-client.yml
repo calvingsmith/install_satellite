@@ -22,10 +22,10 @@
 # Requires satellite-lightspeed-demo.yml (or equivalent) to have created the nested group; post-install must
 # have created the parent rhel9-server host group with libvirt compute resource, subnet, realm, etc.
 # The libvirt compute profile must attach guests to the host bridge (vm_network); see roles/libvirt_compute_profile
-# and post-install.yml, or ansible-playbook -i inventory post-install.yml --tags libvirt_compute_profile_refresh.
+# and post-install.yml, or ansible-playbook -i inventory playbooks/post-install.yml --tags libvirt_compute_profile_refresh.
 # Creates a managed host, sets build context, and requests the compute resource to start the guest.
 #
-#   ansible-playbook -i inventory lightspeed-demo-client.yml --tags provision_demo
+#   ansible-playbook -i inventory playbooks/lightspeed-demo-client.yml --tags provision_demo
 # Teardown (remove Foreman host + linked VM on compute resource): delete_lightspeed_demo.yml
 #
 # Variables (override with -e or via role defaults in roles/provision_demo/defaults/main.yml):
@@ -49,14 +49,14 @@
 # HTTPS: place ./ca.crt in the repo root (see httpboot-demo.yml) or set satellite_ca_path / satellite_validate_certs.
 #
 # Run demo roles only (after the VM is reachable over SSH):
-#   ansible-playbook -i inventory lightspeed-demo-client.yml --limit test-ls.laptop.lab
-#   ansible-playbook -i inventory lightspeed-demo-client.yml --tags lightspeed_demo --limit test-ls.laptop.lab
+#   ansible-playbook -i inventory playbooks/lightspeed-demo-client.yml --limit test-ls.laptop.lab
+#   ansible-playbook -i inventory playbooks/lightspeed-demo-client.yml --tags lightspeed_demo --limit test-ls.laptop.lab
 # Vulnerability demo only (existing VM; does not re-provision):
-#   ansible-playbook -i inventory lightspeed-demo-client.yml --tags lightspeed_demo_vulnerability --limit test-ls.laptop.lab
+#   ansible-playbook -i inventory playbooks/lightspeed-demo-client.yml --tags lightspeed_demo_vulnerability --limit test-ls.laptop.lab
 #
 # Note: --tags provision_demo does NOT run recommendation or vulnerability demo roles (play 4).
 # Full flow (provision + post-provision + both demos):
-#   ansible-playbook -i inventory lightspeed-demo-client.yml
+#   ansible-playbook -i inventory playbooks/lightspeed-demo-client.yml
 #
 # Verify vulnerability demo: Satellite UI → Red Hat Lightspeed → Vulnerability for test-ls.laptop.lab.
 # Allow a few minutes after insights-client upload and iop-cvemap-download on the Satellite.
@@ -82,7 +82,7 @@
   vars_files:
     - "~/vault/satellite.yml"
     - "~/vault/secrets.yml"
-    - "{{ playbook_dir }}/laptop.lab.yml"
+    - "{{ repo_root }}/laptop.lab.yml"
 
   module_defaults:
     group/redhat.satellite.satellite:
@@ -236,11 +236,11 @@
   vars_files:
     - "~/vault/satellite.yml"
     - "~/vault/secrets.yml"
-    - "{{ playbook_dir }}/laptop.lab.yml"
+    - "{{ repo_root }}/laptop.lab.yml"
   pre_tasks:
     # #region agent log
     - name: Debug log — play 4 config (hypothesis D)
-      ansible.builtin.import_tasks: "{{ playbook_dir }}/tasks/lightspeed_demo_debug_log.yml"
+      ansible.builtin.import_tasks: "{{ repo_root }}/tasks/lightspeed_demo_debug_log.yml"
       vars:
         lightspeed_demo_debug_payload:
           sessionId: "754f4a"
@@ -253,7 +253,7 @@
             coordinated_upload_var: "{{ lightspeed_demo_coordinated_insights_upload | default(false) }}"
             defer_kickstart_var: "{{ lightspeed_demo_defer_insights_upload | default(false) }}"
             recommendation_method: "{{ lightspeed_demo_recommendation_method | default('unset') }}"
-            coordinated_task_file_exists: "{{ lookup('ansible.builtin.fileglob', playbook_dir + '/tasks/lightspeed_demo_coordinated_insights_upload.yml') != [] }}"
+            coordinated_task_file_exists: "{{ lookup('ansible.builtin.fileglob', repo_root + '/tasks/lightspeed_demo_coordinated_insights_upload.yml') != [] }}"
     # #endregion
   roles:
     - role: lightspeed_demo_recommendation

@@ -27,7 +27,7 @@
 #   lightspeed_no_proxy                  — optional NO_PROXY for that service (default: localhost)
 #
 # Run (from repo root, adjust inventory):
-#   ansible-playbook -i inventory satellite-lightspeed-demo.yml
+#   ansible-playbook -i inventory playbooks/satellite-lightspeed-demo.yml
 #
 # Demo roles for content hosts (Recommendations + Vulnerability UI):
 #   roles/lightspeed_demo_recommendation, roles/lightspeed_demo_vulnerability
@@ -54,7 +54,7 @@
   vars_files:
     - "~/vault/satellite.yml"
     - "~/vault/secrets.yml"
-    - "{{ playbook_dir }}/laptop.lab.yml"
+    - "{{ repo_root }}/laptop.lab.yml"
   vars:
     lightspeed_skip_podman_login: false
     lightspeed_no_proxy: "localhost"
@@ -174,7 +174,7 @@
       block:
         - name: Copy Lightspeed demo role trees to /usr/share/ansible/roles on Satellite
           ansible.builtin.copy:
-            src: "{{ playbook_dir }}/roles/{{ item }}"
+            src: "{{ repo_root }}/roles/{{ item }}"
             dest: /usr/share/ansible/roles/
             mode: "0644"
             directory_mode: "0755"
@@ -274,7 +274,7 @@
   vars_files:
     - "~/vault/satellite.yml"
     - "~/vault/secrets.yml"
-    - "{{ playbook_dir }}/laptop.lab.yml"
+    - "{{ repo_root }}/laptop.lab.yml"
   vars:
     lightspeed_demo_configure_hostgroup: true
     lightspeed_demo_hostgroup_parent: "{{ rhel9_hostgroup_name | default('rhel9-server') }}"
@@ -291,12 +291,12 @@
 
     - name: Stat optional repo-root CA for Satellite API (./ca.crt)
       ansible.builtin.stat:
-        path: "{{ playbook_dir }}/ca.crt"
+        path: "{{ repo_root }}/ca.crt"
       register: lightspeed_demo_ca_crt_stat
 
     - name: Default satellite_ca_path to repo ca.crt when file exists
       ansible.builtin.set_fact:
-        satellite_ca_path: "{{ playbook_dir }}/ca.crt"
+        satellite_ca_path: "{{ repo_root }}/ca.crt"
       when:
         - satellite_ca_path is not defined
         - lightspeed_demo_ca_crt_stat.stat.exists

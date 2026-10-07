@@ -1,0 +1,3 @@
+---
+# Repository root when playbooks live in playbooks/ (playbook_dir/..).
+repo_root: "{{ playbook_dir }}/.."

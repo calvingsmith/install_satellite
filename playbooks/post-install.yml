@@ -8,7 +8,7 @@
   vars_files:
     - ~/vault/secrets.yml
     - ~/vault/satellite.yml
-    - laptop.lab.yml
+    - "{{ repo_root }}/laptop.lab.yml"
 
   tasks:
     - name: Ensure IdM users and groups for Satellite access
@@ -28,8 +28,8 @@
   vars_files:
     - ~/vault/satellite.yml  # Satellite install / lab identity (e.g. root_password, satellite_*)
     - ~/vault/secrets.yml  # IdM passwords, cdn_*_vault (portal / manifest)
-    - redhat_manifests.yml  # This file should contain the manifest configuration for the redhat_manifests role
-    - laptop.lab.yml  # Lab network, Foreman subnet, and IdM domain (non-sensitive)
+    - "{{ repo_root }}/host_vars/satellite.laptop.lab/redhat_manifests.yml"
+    - "{{ repo_root }}/laptop.lab.yml"  # Lab network, Foreman subnet, and IdM domain (non-sensitive)
 
   tasks:
     # - name: Ensure Satellite services are running
@@ -413,8 +413,8 @@
   vars_files:
     - ~/vault/satellite.yml
     - ~/vault/secrets.yml
-    - redhat_manifests.yml
-    - laptop.lab.yml
+    - "{{ repo_root }}/host_vars/satellite.laptop.lab/redhat_manifests.yml"
+    - "{{ repo_root }}/laptop.lab.yml"
 
   tasks:
     - name: Look up libvirt compute resource (skip if not created yet)

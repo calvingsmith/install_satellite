@@ -8,8 +8,8 @@
 
   vars_files:
     - ~/vault/satellite.yml  # This file should contain the sensitive variables like root_password
-    - host_vars/satellite.laptop.lab/satellite.laptop.lab.yml   # This file should contain the VM specs and hostname for Satellite
-    - laptop.lab.yml       # This file should contain the static IP and other non-sensitive variables
+    - "{{ repo_root }}/host_vars/satellite.laptop.lab/satellite.laptop.lab.yml"
+    - "{{ repo_root }}/laptop.lab.yml"
 
   vars:
     vm_name: "satellite-server"
@@ -41,7 +41,7 @@
 
     - name: Template the network configuration for static IP
       ansible.builtin.template:
-        src: eth0.conf.j2
+        src: "{{ repo_root }}/templates/eth0.conf.j2"
         dest: /tmp/eth0.conf
         mode: preserve
 
@@ -60,7 +60,7 @@
     - name: Define and start the Satellite VM
       community.libvirt.virt:
         command: define
-        xml: "{{ lookup('template', 'vm_template.xml.j2') }}" # See note below about this template
+        xml: "{{ lookup('ansible.builtin.template', repo_root + '/templates/vm_template.xml.j2') }}"
 
     - name: Start the Virtual Machine
       community.libvirt.virt:
@@ -81,7 +81,7 @@
   vars_files:
     - ~/vault/satellite.yml  # Lab / Satellite identity (e.g. root_password, activation keys)
     - ~/vault/secrets.yml  # IdM passwords, cdn_*_vault (portal / manifest)
-    - laptop.lab.yml       # This file should contain the static IP and other non-sensitive variables
+    - "{{ repo_root }}/laptop.lab.yml"
   tags:
     - install
   vars:

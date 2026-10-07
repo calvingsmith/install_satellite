@@ -10,9 +10,9 @@
 # already removed, this run is a no-op; if a VM is orphaned on the hypervisor, clean it with virsh
 # on the libvirt host.
 #
-#   ansible-playbook -i inventory delete_lightspeed_demo.yml
-#   ansible-playbook -i inventory delete_lightspeed_demo.yml -e lightspeed_demo_vm_fqdn=other.example.com
-#   ansible-playbook -i inventory delete_lightspeed_demo.yml --check
+#   ansible-playbook -i inventory playbooks/lightspeed-delete-demo.yml
+#   ansible-playbook -i inventory playbooks/lightspeed-delete-demo.yml -e lightspeed_demo_vm_fqdn=other.example.com
+#   ansible-playbook -i inventory playbooks/lightspeed-delete-demo.yml --check
 #
 # Same vault and host_vars for Satellite as for lightspeed-demo-client (~/vault/satellite.yml, host_vars, ca.crt).
 #
@@ -27,19 +27,19 @@
   vars_files:
     - "~/vault/satellite.yml"
     - "~/vault/secrets.yml"
-    - "{{ playbook_dir }}/laptop.lab.yml"
+    - "{{ repo_root }}/laptop.lab.yml"
   vars:
     lightspeed_demo_vm_fqdn: test-ls.laptop.lab
 
   pre_tasks:
     - name: Stat optional repo-root CA for Satellite API (./ca.crt)
       ansible.builtin.stat:
-        path: "{{ playbook_dir }}/ca.crt"
+        path: "{{ repo_root }}/ca.crt"
       register: delete_lightspeed_client_ca_stat
 
     - name: Default satellite_ca_path to repo ca.crt when it exists
       ansible.builtin.set_fact:
-        satellite_ca_path: "{{ playbook_dir }}/ca.crt"
+        satellite_ca_path: "{{ repo_root }}/ca.crt"
       when:
         - satellite_ca_path is not defined
         - delete_lightspeed_client_ca_stat.stat.exists

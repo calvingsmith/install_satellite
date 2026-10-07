@@ -11,7 +11,7 @@
 # The main provision template (kind: provision) is uploaded and linked to RHEL 9 OSes by this playbook.
 #
 #   ansible-galaxy collection install -r requirements.yml
-#   ansible-playbook -i inventory soe-provisioning-snippets.yml
+#   ansible-playbook -i inventory playbooks/soe-provisioning-snippets.yml
 #
 # Variables:
 #   soe_kickstart_os_search — Foreman search used to find RHEL 9 OS entries (default: major = 9 AND family = Redhat)
@@ -26,7 +26,7 @@
   vars_files:
     - "~/vault/satellite.yml"
     - "~/vault/secrets.yml"
-    - "{{ playbook_dir }}/laptop.lab.yml"
+    - "{{ repo_root }}/laptop.lab.yml"
   vars:
     soe_kickstart_os_search: 'major = 9 AND family = Redhat'
     soe_kickstart_default_provision_template: "SOE Kickstart Default"
@@ -48,12 +48,12 @@
   pre_tasks:
     - name: Stat optional repo-root CA for Satellite API (./ca.crt)
       ansible.builtin.stat:
-        path: "{{ playbook_dir }}/ca.crt"
+        path: "{{ repo_root }}/ca.crt"
       register: soe_snippets_ca_crt_stat
 
     - name: Default satellite_ca_path to repo ca.crt when file exists
       ansible.builtin.set_fact:
-        satellite_ca_path: "{{ playbook_dir }}/ca.crt"
+        satellite_ca_path: "{{ repo_root }}/ca.crt"
       when:
         - satellite_ca_path is not defined
         - soe_snippets_ca_crt_stat.stat.exists
@@ -69,7 +69,7 @@
         state: present
         name: "{{ item.name }}"
         kind: snippet
-        file_name: "{{ playbook_dir }}/templates/{{ item.file }}"
+        file_name: "{{ repo_root }}/templates/{{ item.file }}"
         organizations:
           - "{{ satellite_organization }}"
         locations:
@@ -88,7 +88,7 @@
         state: present
         name: SOE Kickstart Default PXEGrub2
         kind: PXEGrub2
-        file_name: "{{ playbook_dir }}/templates/prov_template_soe_kickstart_default_pxegrub2.j2"
+        file_name: "{{ repo_root }}/templates/prov_template_soe_kickstart_default_pxegrub2.j2"
         organizations:
           - "{{ satellite_organization }}"
         locations:
@@ -104,7 +104,7 @@
         state: present
         name: "{{ soe_kickstart_default_provision_template }}"
         kind: provision
-        file_name: "{{ playbook_dir }}/templates/prov_template_soe_kickstart_default.j2"
+        file_name: "{{ repo_root }}/templates/prov_template_soe_kickstart_default.j2"
         organizations:
           - "{{ satellite_organization }}"
         locations:

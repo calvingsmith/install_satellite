@@ -13,7 +13,7 @@
 
 - name: Copy UEFI prefer-disk script to provisioned guest
   ansible.builtin.copy:
-    src: "{{ playbook_dir }}/files/lightspeed_uefi_prefer_disk_boot.sh"
+    src: "{{ repo_root }}/files/lightspeed_uefi_prefer_disk_boot.sh"
     dest: /tmp/uefi_prefer_disk_boot.sh
     mode: "0700"
   delegate_to: "{{ lightspeed_demo_vm_fqdn }}"

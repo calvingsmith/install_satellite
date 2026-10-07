@@ -2,7 +2,7 @@
 # Append one NDJSON debug line (debug session 754f4a). Pass lightspeed_demo_debug_payload dict.
 - name: Append Lightspeed demo debug log line
   ansible.builtin.lineinfile:
-    path: "{{ playbook_dir }}/.cursor/debug-754f4a.log"
+    path: "{{ repo_root }}/.cursor/debug-754f4a.log"
     line: "{{ lightspeed_demo_debug_payload | to_json }}"
     create: true
     mode: "0644"
