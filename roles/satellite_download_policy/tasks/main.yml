@@ -1,0 +1,87 @@
+---
+- name: Set default download policies to on-demand
+  when: satellite_download_policy_update_defaults | bool
+  tags:
+    - download_policy
+  block:
+    - name: Apply default_redhat_download_policy and default_download_policy
+      redhat.satellite.setting:
+        name: "{{ item }}"
+        value: "{{ satellite_download_policy }}"
+      loop:
+        - default_redhat_download_policy
+        - default_download_policy
+      loop_control:
+        label: "{{ item }}"
+
+- name: List repositories in the organization
+  redhat.satellite.resource_info:
+    resource: repositories
+    organization: "{{ satellite_organization }}"
+    full_details: true
+    params:
+      per_page: "{{ satellite_download_policy_per_page }}"
+  register: satellite_download_policy_repos_info
+  delegate_to: localhost
+  run_once: true
+  tags:
+    - download_policy
+    - reclaim_space
+
+- name: Build normalized repository facts
+  ansible.builtin.set_fact:
+    satellite_download_policy_repos: "{{ _satellite_download_policy_repos_normalized }}"
+  vars:
+    _satellite_download_policy_repos_normalized: >-
+      {%- set out = [] -%}
+      {%- for repo in satellite_download_policy_repos_info.resources | default([]) -%}
+      {%- set prod = repo.product -%}
+      {%- if prod is mapping -%}
+      {%- set _ = out.append(repo | combine({'product_name': prod.name | default(prod)})) -%}
+      {%- else -%}
+      {%- set _ = out.append(repo | combine({'product_name': repo.product_name | default(prod)})) -%}
+      {%- endif -%}
+      {%- endfor -%}
+      {{ out }}
+  delegate_to: localhost
+  run_once: true
+  tags:
+    - download_policy
+    - reclaim_space
+
+- name: Update repository download policy
+  redhat.satellite.repository:
+    organization: "{{ satellite_organization }}"
+    name: "{{ item.name }}"
+    product: "{{ item.product_name }}"
+    content_type: "{{ item.content_type }}"
+    download_policy: "{{ satellite_download_policy }}"
+  loop: "{{ satellite_download_policy_repos }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when:
+    - item.download_policy | default('') != satellite_download_policy
+    - not (
+        satellite_download_policy_skip_kickstart | bool
+        and ('Kickstart' in item.name)
+      )
+  register: satellite_download_policy_update_results
+  tags:
+    - download_policy
+
+- name: Summarize download policy changes
+  ansible.builtin.debug:
+    msg: >-
+      Repositories in organization: {{ satellite_download_policy_repos | length }}.
+      Changed this run: {{
+        satellite_download_policy_update_results.results | default([])
+        | selectattr('changed', 'defined') | selectattr('changed') | list | length
+      }}.
+  tags:
+    - download_policy
+
+- name: Reclaim space from on-demand repositories
+  when: satellite_download_policy_reclaim_space | bool
+  ansible.builtin.import_tasks: reclaim_space.yml
+  tags:
+    - reclaim_space

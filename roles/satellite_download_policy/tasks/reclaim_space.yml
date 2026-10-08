@@ -1,0 +1,168 @@
+---
+- name: Resolve Satellite API base URL for reclaim
+  ansible.builtin.set_fact:
+    satellite_download_policy_api_base: "{{ satellite_url | regex_replace('/$', '') }}"
+  run_once: true
+
+- name: Refresh repository list before reclaim (bulk mode)
+  when: satellite_download_policy_reclaim_mode == 'bulk'
+  redhat.satellite.resource_info:
+    resource: repositories
+    organization: "{{ satellite_organization }}"
+    full_details: true
+    params:
+      per_page: "{{ satellite_download_policy_per_page }}"
+  register: satellite_download_policy_reclaim_repos_info
+  delegate_to: localhost
+  run_once: true
+
+- name: Build repository IDs eligible for reclaim (respect kickstart skip)
+  when:
+    - satellite_download_policy_reclaim_mode == 'bulk'
+    - satellite_download_policy_skip_kickstart | bool
+  ansible.builtin.set_fact:
+    satellite_download_policy_reclaim_ids: >-
+      {{
+        satellite_download_policy_reclaim_repos_info.resources | default([])
+        | selectattr('download_policy', 'equalto', satellite_download_policy)
+        | rejectattr('name', 'search', 'Kickstart')
+        | map(attribute='id') | list
+      }}
+  delegate_to: localhost
+  run_once: true
+
+- name: Build repository IDs eligible for reclaim
+  when:
+    - satellite_download_policy_reclaim_mode == 'bulk'
+    - not (satellite_download_policy_skip_kickstart | bool)
+  ansible.builtin.set_fact:
+    satellite_download_policy_reclaim_ids: >-
+      {{
+        satellite_download_policy_reclaim_repos_info.resources | default([])
+        | selectattr('download_policy', 'equalto', satellite_download_policy)
+        | map(attribute='id') | list
+      }}
+  delegate_to: localhost
+  run_once: true
+
+- name: Skip bulk reclaim when no on-demand repositories
+  when:
+    - satellite_download_policy_reclaim_mode == 'bulk'
+    - satellite_download_policy_reclaim_ids | default([]) | length == 0
+  ansible.builtin.debug:
+    msg: No on-demand repositories to reclaim (bulk mode).
+  run_once: true
+
+- name: Resolve organization ID for bulk reclaim
+  when:
+    - satellite_download_policy_reclaim_mode == 'bulk'
+    - satellite_download_policy_reclaim_ids | default([]) | length > 0
+  block:
+    - name: Look up organization by title
+      redhat.satellite.resource_info:
+        resource: organizations
+        search: 'title = "{{ satellite_organization }}"'
+        full_details: true
+      register: satellite_download_policy_org_info
+      delegate_to: localhost
+      run_once: true
+
+    - name: Set organization ID from organization lookup
+      when: satellite_download_policy_org_info.resources | default([]) | length > 0
+      ansible.builtin.set_fact:
+        satellite_download_policy_organization_id: "{{ satellite_download_policy_org_info.resources[0].id }}"
+      run_once: true
+
+    - name: Set organization ID from repository metadata
+      when: satellite_download_policy_organization_id is not defined
+      ansible.builtin.set_fact:
+        satellite_download_policy_organization_id: >-
+          {{ satellite_download_policy_reclaim_repos_info.resources[0].organization_id }}
+      run_once: true
+
+- name: Reclaim space from on-demand repositories (bulk)
+  when:
+    - satellite_download_policy_reclaim_mode == 'bulk'
+    - satellite_download_policy_reclaim_ids | default([]) | length > 0
+  ansible.builtin.uri:
+    url: "{{ satellite_download_policy_api_base }}/katello/api/v2/repositories/bulk/reclaim_space"
+    method: POST
+    url_username: "{{ satellite_username | default('admin') }}"
+    url_password: "{{ satellite_password }}"
+    force_basic_auth: true
+    validate_certs: "{{ satellite_validate_certs | default(true) }}"
+    ca_path: "{{ satellite_ca_path | default(omit) }}"
+    body_format: json
+    body:
+      organization_id: "{{ satellite_download_policy_organization_id | int }}"
+      ids: "{{ satellite_download_policy_reclaim_ids | map('int') | list }}"
+    status_code: [200, 201, 202]
+    return_content: true
+  register: satellite_download_policy_reclaim_bulk
+  delegate_to: localhost
+  run_once: true
+
+- name: Look up smart proxy for capsule reclaim
+  when: satellite_download_policy_reclaim_mode == 'capsule'
+  redhat.satellite.resource_info:
+    resource: smart_proxies
+    search: 'name = "{{ satellite_download_policy_reclaim_capsule_name }}"'
+    full_details: true
+  register: satellite_download_policy_capsule_info
+  delegate_to: localhost
+  run_once: true
+
+- name: Require smart proxy for capsule reclaim
+  when: satellite_download_policy_reclaim_mode == 'capsule'
+  ansible.builtin.assert:
+    that:
+      - satellite_download_policy_capsule_info.resources | default([]) | length == 1
+    fail_msg: >-
+      Smart proxy "{{ satellite_download_policy_reclaim_capsule_name }}" not found
+      (set satellite_download_policy_reclaim_capsule_name or satellite_smart_proxy_name).
+  run_once: true
+
+- name: Reclaim space from on-demand repositories (capsule)
+  when: satellite_download_policy_reclaim_mode == 'capsule'
+  ansible.builtin.uri:
+    url: >-
+      {{ satellite_download_policy_api_base }}/katello/api/v2/capsules/{{
+      satellite_download_policy_capsule_info.resources[0].id
+      }}/content/reclaim_space
+    method: POST
+    url_username: "{{ satellite_username | default('admin') }}"
+    url_password: "{{ satellite_password }}"
+    force_basic_auth: true
+    validate_certs: "{{ satellite_validate_certs | default(true) }}"
+    ca_path: "{{ satellite_ca_path | default(omit) }}"
+    body_format: json
+    body: {}
+    status_code: [200, 201, 202]
+    return_content: true
+  register: satellite_download_policy_reclaim_capsule
+  delegate_to: localhost
+  run_once: true
+
+- name: Select reclaim API response
+  ansible.builtin.set_fact:
+    satellite_download_policy_reclaim_response: >-
+      {{
+        satellite_download_policy_reclaim_bulk
+        if satellite_download_policy_reclaim_mode == 'bulk'
+        else satellite_download_policy_reclaim_capsule
+      }}
+  when: >-
+    (satellite_download_policy_reclaim_mode == 'bulk'
+     and satellite_download_policy_reclaim_ids | default([]) | length > 0)
+    or satellite_download_policy_reclaim_mode == 'capsule'
+  run_once: true
+
+- name: Wait for reclaim space task to complete
+  when:
+    - satellite_download_policy_reclaim_wait | bool
+    - satellite_download_policy_reclaim_response is defined
+    - satellite_download_policy_reclaim_response.json.id is defined
+  redhat.satellite.wait_for_task:
+    task: "{{ satellite_download_policy_reclaim_response.json.id }}"
+    timeout: "{{ satellite_download_policy_reclaim_wait_timeout }}"
+  run_once: true

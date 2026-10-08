@@ -1,0 +1,10 @@
+---
+satellite_download_policy: on_demand
+satellite_download_policy_update_defaults: true
+satellite_download_policy_skip_kickstart: true
+satellite_download_policy_per_page: 200
+satellite_download_policy_reclaim_space: true
+satellite_download_policy_reclaim_wait: true
+satellite_download_policy_reclaim_wait_timeout: 7200
+satellite_download_policy_reclaim_mode: bulk
+satellite_download_policy_reclaim_capsule_name: "{{ satellite_smart_proxy_name | default(inventory_hostname) }}"

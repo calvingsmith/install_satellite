@@ -1,0 +1,51 @@
+---
+# Set Satellite default and per-repository download policies to on_demand, then reclaim
+# space from on-demand content (bulk Katello API by default).
+#
+# Prerequisites: ansible-galaxy collection install redhat.satellite (>= 3.13 for wait_for_task)
+# and Python requests on the controller (see requirements-controller.txt).
+#
+# Run from the repository root:
+#   ansible-playbook -i inventory playbooks/set-repositories-on-demand.yml
+#
+# Policy only (no reclaim):
+#   ansible-playbook -i inventory playbooks/set-repositories-on-demand.yml --tags download_policy --skip-tags reclaim_space
+#
+# Reclaim only (repos already on_demand; skips default settings and repository updates):
+#   ansible-playbook -i inventory playbooks/set-repositories-on-demand.yml --tags reclaim_space \
+#     -e satellite_download_policy_update_defaults=false
+#   (repository update tasks use tag download_policy only)
+#
+# Optional:
+#   -e satellite_download_policy_skip_kickstart=false
+#   -e satellite_download_policy_reclaim_wait=false
+#   -e satellite_download_policy_reclaim_mode=capsule
+#   -e satellite_validate_certs=false
+
+- name: Set repository download policy to on-demand
+  hosts: satellite.laptop.lab
+  connection: local
+  gather_facts: false
+  vars_files:
+    - ~/vault/satellite.yml
+    - ~/vault/secrets.yml
+    - "{{ repo_root }}/laptop.lab.yml"
+  module_defaults:
+    group/redhat.satellite.satellite:
+      username: "{{ satellite_username | default('admin') }}"
+      password: "{{ satellite_password }}"
+      server_url: "{{ satellite_url }}"
+      validate_certs: "{{ satellite_validate_certs | default(true) }}"
+      ca_path: "{{ satellite_ca_path | default(omit) }}"
+  pre_tasks:
+    - name: Detect CA certificate for Satellite API
+      ansible.builtin.import_role:
+        name: satellite_soe_templates
+        tasks_from: detect_ca
+  tasks:
+    - name: Apply on-demand download policy and reclaim space
+      ansible.builtin.import_role:
+        name: satellite_download_policy
+  tags:
+    - download_policy
+    - reclaim_space
